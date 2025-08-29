@@ -1,0 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  analysisRequests AIAnalysisRequest[]
+  predictions      MLPrediction[]
+  dataPoints       DataPoint[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  DEVELOPER
+}
+
+model AIAnalysisRequest {
+  id           String      @id @default(cuid())
+  text         String
+  analysisType AnalysisType
+  language     String?
+  confidence   Float?
+  maxTokens    Int?
+  
+  // Results
+  result       Json?
+  processingTime Int?
+  tokensUsed   Int?
+  model        String?
+  version      String?
+  
+  // Relations
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("ai_analysis_requests")
+}
+
+enum AnalysisType {
+  SENTIMENT
+  CLASSIFICATION
+  SUMMARIZATION
+  TRANSLATION
+  ENTITY_EXTRACTION
+}
+
+model MLPrediction {
+  id           String    @id @default(cuid())
+  features     Float[]
+  modelType    ModelType
+  threshold    Float?
+  
+  // Results
+  prediction   Json
+  confidence   Float
+  probabilities Json?
+  modelVersion String?
+  accuracy     Float?
+  
+  // Relations
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("ml_predictions")
+}
+
+enum ModelType {
+  LINEAR_REGRESSION
+  CLASSIFICATION
+  CLUSTERING
+  ANOMALY_DETECTION
+}
+
+model DataPoint {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  value     Float
+  category  String
+  metadata  Json?
+  
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("data_points")
+}
+
+model LogEntry {
+  id        String   @id @default(cuid())
+  level     LogLevel
+  message   String
+  service   String
+  metadata  Json?
+  traceId   String?
+  timestamp DateTime @default(now())
+
+  @@map("log_entries")
+}
+
+enum LogLevel {
+  ERROR
+  WARN
+  INFO
+  DEBUG
+}
+
+model SystemMetric {
+  id        String   @id @default(cuid())
+  name      String
+  value     Float
+  unit      String?
+  tags      Json?
+  timestamp DateTime @default(now())
+
+  @@map("system_metrics")
+}
